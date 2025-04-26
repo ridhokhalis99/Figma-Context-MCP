@@ -44,6 +44,7 @@
     "@figma/rest-api-spec": "^0.24.0",
     "@modelcontextprotocol/sdk": "^1.10.2",
     "@types/yargs": "^17.0.33",
+    "@vercel/node": "^5.1.14",
     "cross-env": "^7.0.3",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",

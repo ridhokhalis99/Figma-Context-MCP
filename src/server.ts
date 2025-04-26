@@ -1,12 +1,11 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+import { IncomingMessage, Server, ServerResponse } from "http";
 import { z } from "zod";
 import { FigmaService } from "./services/figma.js";
-import express, { Request, Response } from "express";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
-import { IncomingMessage, ServerResponse, Server } from "http";
-import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { SimplifiedDesign } from "./services/simplify-node-response.js";
-import yaml from "js-yaml";
+import express, { Request, Response } from "express";
 
 export const Logger = {
   log: (...args: any[]) => {},
@@ -23,6 +22,10 @@ export class FigmaMcpServer {
   public readonly server: McpServer;
   private readonly figmaService: FigmaService;
   private transports: { [sessionId: string]: SSEServerTransport } = {};
+
+  public hasTransport(sessionId: string): boolean {
+    return !!this.transports[sessionId];
+  }
   private httpServer: Server | null = null;
   // Add a cache object to store previously fetched Figma data
   private figmaDataCache: Record<string, CacheEntry> = {};
@@ -332,8 +335,32 @@ export class FigmaMcpServer {
       });
     });
   }
+
+  // Fixing the private access issue by adding a public getter for transports
+  public getTransports() {
+    return this.transports;
+  }
 }
 
 export async function startHttpServer(server: FigmaMcpServer, port: number): Promise<void> {
   await server.startHttpServer(port);
+}
+
+export default async function handler(req: Request, res: Response) {
+  const figmaApiKey = process.env.FIGMA_API_KEY || "";
+  const server = new FigmaMcpServer(figmaApiKey);
+
+  if (req.method === "GET" && req.url?.startsWith("/sse")) {
+    const transport = new SSEServerTransport("/messages", res);
+    await server.connect(transport);
+  } else if (req.method === "POST" && req.url?.startsWith("/messages")) {
+    const sessionId = req.query.sessionId as string;
+    if (!server.getTransports()[sessionId]) {
+      res.status(400).send(`No transport found for sessionId ${sessionId}`);
+      return;
+    }
+    await server.getTransports()[sessionId].handlePostMessage(req, res);
+  } else {
+    res.status(404).send("Not Found");
+  }
 }
