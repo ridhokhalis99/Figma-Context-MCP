@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "routes": [
+    { "src": "/sse", "dest": "/api/figma-server" },
+    { "src": "/messages", "dest": "/api/figma-server" }
+  ]
+}
