@@ -1,7 +1,9 @@
 {
   "version": 2,
   "routes": [
+    { "src": "/", "dest": "/api/figma-server" },
     { "src": "/sse", "dest": "/api/figma-server" },
     { "src": "/messages", "dest": "/api/figma-server" }
-  ]
+  ],
+  "builds": [{ "src": "src/**/*.ts", "use": "@vercel/node" }]
 }
